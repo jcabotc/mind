@@ -3,7 +3,7 @@ defmodule Mind.PartitionTest do
 
   alias Mind.Partition
 
-  test "all functions" do
+  test "managing keys and values" do
     {:ok, pid} = Partition.start_link()
 
     assert :ok = Partition.put(pid, :foo, "FOO")
