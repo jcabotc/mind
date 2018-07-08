@@ -1,0 +1,2 @@
+defmodule Mind do
+end
