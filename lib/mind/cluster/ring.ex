@@ -1,4 +1,4 @@
-defmodule Mind.Ring do
+defmodule Mind.Cluster.Ring do
   alias __MODULE__
 
   @multiplicity 100

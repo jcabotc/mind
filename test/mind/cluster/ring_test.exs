@@ -1,7 +1,7 @@
-defmodule Mind.RingTest do
+defmodule Mind.Cluster.RingTest do
   use ExUnit.Case, async: true
 
-  alias Mind.Ring
+  alias Mind.Cluster.Ring
 
   test "add and remove nodes" do
     ring =

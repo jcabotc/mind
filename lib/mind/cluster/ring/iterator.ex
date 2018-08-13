@@ -1,4 +1,4 @@
-defmodule Mind.Ring.Iterator do
+defmodule Mind.Cluster.Ring.Iterator do
   alias __MODULE__
 
   defstruct tree: nil,
