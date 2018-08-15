@@ -14,15 +14,15 @@ defmodule Mind.Cluster.Ring do
     do: Enum.reduce(nodes, new(), &add(&2, &1))
 
   def key_stream(%Ring{nodes: []}, _key),
-    do: {:error, :no_nodes}
+    do: []
 
   def key_stream(%Ring{tree: tree, nodes: nodes}, key) do
     key_hash = :erlang.phash2(key, @hash_range)
     num_nodes = MapSet.size(nodes)
 
-    iter = Ring.Iterator.new(tree, key_hash, num_nodes)
-
-    {:ok, Stream.unfold(iter, &Ring.Iterator.next/1)}
+    tree
+    |> Ring.Iterator.new(key_hash, num_nodes)
+    |> Stream.unfold(&Ring.Iterator.next/1)
   end
 
   def add(%Ring{tree: tree, nodes: nodes} = ring, node) do

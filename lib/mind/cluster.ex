@@ -5,21 +5,39 @@ defmodule Mind.Cluster do
 
   alias __MODULE__.{Members, Ring, Timeouts, Events}
 
-  def start_link(opts) do
-    GenServer.start_link(__MODULE__, :ok, opts)
+  def start_link(events, opts) do
+    GenServer.start_link(__MODULE__, events, opts)
   end
 
-  def init(:ok) do
+  def nodes(server, key, limit) do
+    GenServer.call(server, {:nodes, key, limit})
+  end
+
+  def init(events) do
     :net_kernel.monitor_nodes(true, node_type: :visible)
     nodes = [Node.self() | Node.list()]
 
     state = %{
       ring: Ring.new(nodes),
       members: Members.new(nodes, :up),
-      down_timeouts: Timeouts.new()
+      timeouts: Timeouts.new(),
+      events: events
     }
 
+    Enum.each(nodes, &notify_node_added(state, &1))
     {:ok, state}
+  end
+
+  def handle_call({:nodes, key, limit}, _from, state) do
+    %{ring: ring, members: members} = state
+
+    nodes =
+      ring
+      |> Ring.key_stream(key)
+      |> Stream.filter(&(Members.status(members, &1) == :up))
+      |> Enum.take(limit)
+
+    {:reply, nodes, state}
   end
 
   def handle_info({:node_up, node}, state) do
@@ -29,7 +47,7 @@ defmodule Mind.Cluster do
       |> Map.update!(:members, &Members.set(&1, node, :up))
       |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
 
-    :ok = Events.notify({:node_added, node})
+    notify_node_added(state, node)
     {:noreply, new_state}
   end
 
@@ -51,7 +69,13 @@ defmodule Mind.Cluster do
       |> Map.update!(:members, &Members.delete(&1, node))
       |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
 
-    :ok = Events.notify({:node_removed, node})
+    notify_node_removed(state, node)
     {:noreply, new_state}
   end
+
+  defp notify_node_added(%{events: events}, node),
+    do: :ok = Events.notify(events, {:node_added, node})
+
+  defp notify_node_removed(%{events: events}, node),
+    do: :ok = Events.notify(events, {:node_removed, node})
 end

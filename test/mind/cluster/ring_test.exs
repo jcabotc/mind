@@ -10,7 +10,7 @@ defmodule Mind.Cluster.RingTest do
       |> Ring.remove(:b)
 
     key = "asdf"
-    assert {:ok, stream} = Ring.key_stream(ring, key)
+    stream = Ring.key_stream(ring, key)
 
     nodes = Enum.to_list(stream)
     assert Enum.sort(nodes) == [:a, :c]
