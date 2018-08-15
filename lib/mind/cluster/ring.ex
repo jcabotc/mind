@@ -26,12 +26,8 @@ defmodule Mind.Cluster.Ring do
     iter = :gb_trees.iterator_from(key, tree)
 
     case :gb_trees.next(iter) do
-      {token, _node, _iter} ->
-        token
-
-      :none ->
-        {token, _node} = :gb_trees.smallest(tree)
-        token
+      {token, node, _iter} -> {token, node}
+      :none -> :gb_trees.smallest(tree)
     end
   end
 

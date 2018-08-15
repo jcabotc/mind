@@ -18,7 +18,8 @@ defmodule Mind.Cluster.RingTest do
 
     assert Enum.sort(nodes) == [:a, :c]
 
-    token = Ring.token(ring, key)
+    assert {token, node} = Ring.token(ring, key)
     assert is_integer(token)
+    assert node in [:a, :c]
   end
 end
