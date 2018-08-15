@@ -13,9 +13,6 @@ defmodule Mind.Cluster.Ring do
   def new(nodes),
     do: Enum.reduce(nodes, new(), &add(&2, &1))
 
-  def key_stream(%Ring{nodes: []}, _key),
-    do: []
-
   def key_stream(%Ring{tree: tree, nodes: nodes}, key) do
     key_hash = :erlang.phash2(key, @hash_range)
     num_nodes = MapSet.size(nodes)
@@ -23,6 +20,19 @@ defmodule Mind.Cluster.Ring do
     tree
     |> Ring.Iterator.new(key_hash, num_nodes)
     |> Stream.unfold(&Ring.Iterator.next/1)
+  end
+
+  def token(%Ring{tree: tree}, key) do
+    iter = :gb_trees.iterator_from(key, tree)
+
+    case :gb_trees.next(iter) do
+      {token, _node, _iter} ->
+        token
+
+      :none ->
+        {token, _node} = :gb_trees.smallest(tree)
+        token
+    end
   end
 
   def add(%Ring{tree: tree, nodes: nodes} = ring, node) do

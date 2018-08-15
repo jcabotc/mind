@@ -10,9 +10,15 @@ defmodule Mind.Cluster.RingTest do
       |> Ring.remove(:b)
 
     key = "asdf"
-    stream = Ring.key_stream(ring, key)
 
-    nodes = Enum.to_list(stream)
+    nodes =
+      ring
+      |> Ring.key_stream(key)
+      |> Enum.to_list()
+
     assert Enum.sort(nodes) == [:a, :c]
+
+    token = Ring.token(ring, key)
+    assert is_integer(token)
   end
 end
