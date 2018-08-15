@@ -1,7 +1,9 @@
 defmodule Mind.Cluster do
   use GenServer
 
-  alias __MODULE__.{Ring, Events}
+  @node_timeout_ms 1000 * 60 * 60 * 4
+
+  alias __MODULE__.{Members, Ring, Timeouts, Events}
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, :ok, opts)
@@ -9,29 +11,47 @@ defmodule Mind.Cluster do
 
   def init(:ok) do
     :net_kernel.monitor_nodes(true, node_type: :visible)
-    ring = build_ring()
+    nodes = [Node.self() | Node.list()]
 
-    {:ok, %{ring: ring}}
+    state = %{
+      ring: Ring.new(nodes),
+      members: Members.new(nodes, :up),
+      down_timeouts: Timeouts.new()
+    }
+
+    {:ok, state}
   end
 
-  def handle_info({:node_up, new_node}, %{ring: ring} = state) do
-    new_ring = Ring.add(ring, new_node)
-    :ok = Events.notify({:node_added, new_node})
+  def handle_info({:node_up, node}, state) do
+    new_state =
+      state
+      |> Map.update!(:ring, &Ring.add(&1, node))
+      |> Map.update!(:members, &Members.set(&1, node, :up))
+      |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
 
-    {:noreply, %{state | ring: new_ring}}
+    :ok = Events.notify({:node_added, node})
+    {:noreply, new_state}
   end
 
-  def handle_info({:node_down, dead_node}, %{ring: ring} = state) do
-    new_ring = Ring.remove(ring, dead_node)
-    :ok = Events.notify({:node_removed, dead_node})
+  def handle_info({:node_down, node}, state) do
+    ref = Process.send_after(self(), {:node_timeout, node}, @node_timeout_ms)
 
-    {:noreply, %{state | ring: new_ring}}
+    new_state =
+      state
+      |> Map.update!(:members, &Members.set(&1, node, :down))
+      |> Map.update!(:timeouts, &Timeouts.add(&1, node, ref))
+
+    {:noreply, new_state}
   end
 
-  defp build_ring() do
-    nodes = Node.list()
-    ring = Ring.new()
+  def handle_info({:node_timeout, node}, state) do
+    new_state =
+      state
+      |> Map.update!(:ring, &Ring.remove(&1, node))
+      |> Map.update!(:members, &Members.delete(&1, node))
+      |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
 
-    Enum.reduce(nodes, ring, &Ring.add(&2, &1))
+    :ok = Events.notify({:node_removed, node})
+    {:noreply, new_state}
   end
 end

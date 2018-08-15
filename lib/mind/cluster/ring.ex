@@ -7,13 +7,14 @@ defmodule Mind.Cluster.Ring do
   defstruct tree: :gb_trees.empty(),
             nodes: MapSet.new()
 
-  def new() do
-    %Ring{}
-  end
+  def new(),
+    do: %Ring{}
 
-  def key_stream(%Ring{nodes: []}, _key) do
-    {:error, :no_nodes}
-  end
+  def new(nodes),
+    do: Enum.reduce(nodes, new(), &add(&2, &1))
+
+  def key_stream(%Ring{nodes: []}, _key),
+    do: {:error, :no_nodes}
 
   def key_stream(%Ring{tree: tree, nodes: nodes}, key) do
     key_hash = :erlang.phash2(key, @hash_range)

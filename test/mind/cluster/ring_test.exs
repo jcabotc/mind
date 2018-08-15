@@ -5,9 +5,7 @@ defmodule Mind.Cluster.RingTest do
 
   test "add and remove nodes" do
     ring =
-      Ring.new()
-      |> Ring.add(:a)
-      |> Ring.add(:b)
+      Ring.new([:a, :b])
       |> Ring.add(:c)
       |> Ring.remove(:b)
 
