@@ -66,7 +66,7 @@ defmodule Mind.ClusterTest do
     assert_receive {:notified, {:node_removed, :node_1}}
 
     # Get a token
-    assert {:reply, token, _state} = get_token("key", state)
-    assert is_integer(token)
+    assert {:reply, result, _state} = get_token("key", state)
+    assert match?({:local, _token}, result) or match?({:remote, _token, _node}, result)
   end
 end

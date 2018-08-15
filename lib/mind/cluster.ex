@@ -29,8 +29,14 @@ defmodule Mind.Cluster do
     {:ok, state}
   end
 
-  def handle_call({:token, key}, _from, %{ring: ring} = state),
-    do: {:reply, Ring.token(ring, key), state}
+  def handle_call({:token, key}, _from, %{ring: ring} = state) do
+    {token, node} = Ring.token(ring, key)
+
+    case node == Node.self() do
+      true -> {:reply, {:local, token}, state}
+      false -> {:reply, {:remote, token, node}, state}
+    end
+  end
 
   def handle_call({:nodes, key, limit}, _from, state) do
     %{ring: ring, members: members} = state
