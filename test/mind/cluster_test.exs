@@ -6,6 +6,9 @@ defmodule Mind.ClusterTest do
   defp get_nodes(key, limit, state),
     do: Cluster.handle_call({:nodes, key, limit}, :from, state)
 
+  defp get_token(key, state),
+    do: Cluster.handle_call({:token, key}, :from, state)
+
   defp node_up(node, state),
     do: Cluster.handle_info({:node_up, node}, state)
 
@@ -21,6 +24,7 @@ defmodule Mind.ClusterTest do
     current_node = Node.self()
     test_pid = self()
 
+    # Setup cluster events
     {:ok, events} = start_supervised({Cluster.Events, name: @events_name})
 
     callback = fn event ->
@@ -30,28 +34,39 @@ defmodule Mind.ClusterTest do
 
     assert {:ok, _pid} = Cluster.Events.subscribe(events, callback)
 
+    # Start cluster (adds the current node)
     assert {:ok, state} = Cluster.init(events)
     assert_receive {:notified, {:node_added, ^current_node}}
 
+    # Get nodes for a key (only current node)
     assert {:reply, nodes, state} = get_nodes("key", 2, state)
     assert [current_node] == nodes
 
+    # Add 2 nodes
     assert {:noreply, state} = node_up(:node_1, state)
     assert {:noreply, state} = node_up(:node_2, state)
     assert_receive {:notified, {:node_added, :node_1}}
     assert_receive {:notified, {:node_added, :node_2}}
 
+    # Get nodes for a key (2 out of the 3 up nodes)
     assert {:reply, nodes, state} = get_nodes("key", 2, state)
     unique_nodes = Enum.uniq(nodes)
     assert Enum.count(unique_nodes) == 2
     assert Enum.all?(nodes, &(&1 in [current_node, :node_1, :node_2]))
 
+    # One node down
     assert {:noreply, state} = node_down(:node_1, state)
 
+    # Get nodes for a key (the remaining 2)
     assert {:reply, nodes, state} = get_nodes("key", 2, state)
     assert Enum.sort(nodes) == Enum.sort([current_node, :node_2])
 
-    assert {:noreply, _state} = node_timeout(:node_1, state)
+    # Down node timeout
+    assert {:noreply, state} = node_timeout(:node_1, state)
     assert_receive {:notified, {:node_removed, :node_1}}
+
+    # Get a token
+    assert {:reply, token, _state} = get_token("key", state)
+    assert is_integer(token)
   end
 end

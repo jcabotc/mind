@@ -5,13 +5,14 @@ defmodule Mind.Cluster do
 
   alias __MODULE__.{Members, Ring, Timeouts, Events}
 
-  def start_link(events, opts) do
-    GenServer.start_link(__MODULE__, events, opts)
-  end
+  def start_link(events, opts),
+    do: GenServer.start_link(__MODULE__, events, opts)
 
-  def nodes(server, key, limit) do
-    GenServer.call(server, {:nodes, key, limit})
-  end
+  def nodes(server, key, limit),
+    do: GenServer.call(server, {:nodes, key, limit})
+
+  def token(server, key),
+    do: GenServer.call(server, {:token, key})
 
   def init(events) do
     :net_kernel.monitor_nodes(true, node_type: :visible)
@@ -27,6 +28,9 @@ defmodule Mind.Cluster do
     Enum.each(nodes, &notify_node_added(state, &1))
     {:ok, state}
   end
+
+  def handle_call({:token, key}, _from, %{ring: ring} = state),
+    do: {:reply, Ring.token(ring, key), state}
 
   def handle_call({:nodes, key, limit}, _from, state) do
     %{ring: ring, members: members} = state
