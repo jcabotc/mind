@@ -4,16 +4,13 @@ defmodule Mind.Cluster.Tracker do
   @node_timeout_ms 1000 * 60 * 60 * 4
 
   alias __MODULE__.{Members, Ring, Timeouts}
-  alias Mind.Cluster.Events
+  alias Mind.Cluster.{Snapshot, Events}
 
   def start_link(events, opts),
     do: GenServer.start_link(__MODULE__, events, opts)
 
-  def nodes(server, key, limit),
-    do: GenServer.call(server, {:nodes, key, limit})
-
-  def token(server, key),
-    do: GenServer.call(server, {:token, key})
+  def snapshot(server, key),
+    do: GenServer.call(server, {:snapshot, key})
 
   def init(events) do
     :net_kernel.monitor_nodes(true, node_type: :visible)
@@ -30,25 +27,21 @@ defmodule Mind.Cluster.Tracker do
     {:ok, state}
   end
 
-  def handle_call({:token, key}, _from, %{ring: ring} = state) do
-    {token, node} = Ring.token(ring, key)
-
-    case node == Node.self() do
-      true -> {:reply, {:local, token}, state}
-      false -> {:reply, {:remote, token, node}, state}
-    end
-  end
-
-  def handle_call({:nodes, key, limit}, _from, state) do
+  def handle_call({:snapshot, key}, _from, %{ring: ring} = state) do
     %{ring: ring, members: members} = state
 
     nodes =
       ring
       |> Ring.key_stream(key)
       |> Stream.filter(&(Members.status(members, &1) == :up))
-      |> Enum.take(limit)
+      |> Enum.to_list()
 
-    {:reply, nodes, state}
+    snapshot = %Snapshot{
+      key: key,
+      nodes: nodes
+    }
+
+    {:reply, snapshot, state}
   end
 
   def handle_info({:node_up, node}, state) do

@@ -19,16 +19,10 @@ defmodule Mind.Cluster do
     |> Events.subscribe(callback)
   end
 
-  def nodes(cluster, key, limit) do
+  def snapshot(cluster, key) do
     cluster
     |> get_tracker()
-    |> Tracker.nodes(key, limit)
-  end
-
-  def token(cluster, key) do
-    cluster
-    |> get_tracker()
-    |> Tracker.token(key)
+    |> Tracker.snapshot(key)
   end
 
   defp get_events(cluster),
