@@ -10,8 +10,8 @@ defmodule Mind.Config do
         }
 
   defstruct [
-    :key_replicas,
-    :read_quorum,
-    :write_quorum
+    key_replicas: 3,
+    read_quorum: 1,
+    write_quorum: 2
   ]
 end
