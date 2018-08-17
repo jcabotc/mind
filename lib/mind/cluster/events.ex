@@ -3,9 +3,8 @@ defmodule Mind.Cluster.Events do
 
   alias __MODULE__.Handler
 
-  def start_link(opts) do
-    DynamicSupervisor.start_link(__MODULE__, :ok, opts)
-  end
+  def start_link(opts),
+    do: DynamicSupervisor.start_link(__MODULE__, :ok, opts)
 
   def subscribe(sup, callback) when is_function(callback, 1) do
     spec = {Handler, callback}

@@ -3,7 +3,8 @@ defmodule Mind.Cluster.Tracker do
 
   @node_timeout_ms 1000 * 60 * 60 * 4
 
-  alias Mind.Cluster.{Members, Ring, Timeouts, Events}
+  alias __MODULE__.{Members, Ring, Timeouts}
+  alias Mind.Cluster.Events
 
   def start_link(events, opts),
     do: GenServer.start_link(__MODULE__, events, opts)

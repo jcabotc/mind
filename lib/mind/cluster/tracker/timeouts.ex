@@ -1,4 +1,4 @@
-defmodule Mind.Cluster.Timeouts do
+defmodule Mind.Cluster.Tracker.Timeouts do
   alias __MODULE__
 
   defstruct refs: %{},

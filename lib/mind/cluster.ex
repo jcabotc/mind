@@ -13,6 +13,12 @@ defmodule Mind.Cluster do
     ]
   end
 
+  def subscribe(cluster, callback) do
+    cluster
+    |> get_events()
+    |> Events.subscribe(callback)
+  end
+
   def nodes(cluster, key, limit) do
     cluster
     |> get_tracker()
