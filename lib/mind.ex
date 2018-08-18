@@ -16,13 +16,11 @@ defmodule Mind do
   defp fill_opts(opts) do
     name = Keyword.get(opts, :name, @name)
 
-    store = get_store(name)
-    cluster = get_cluster(name)
-
     opts
     |> Keyword.put_new(:name, name)
-    |> Keyword.put(:store_name, store)
-    |> Keyword.put(:cluster_name, cluster)
+    |> Keyword.put(:store_name, get_store(name))
+    |> Keyword.put(:cluster_name, get_cluster(name))
+    |> Keyword.put(:remote_name, get_remote(name))
   end
 
   defp get_cluster(name),
@@ -30,4 +28,7 @@ defmodule Mind do
 
   defp get_store(name),
     do: :"#{name}.Store"
+
+  defp get_remote(name),
+    do: :"#{name}.Remote"
 end
