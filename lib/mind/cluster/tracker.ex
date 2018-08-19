@@ -27,7 +27,7 @@ defmodule Mind.Cluster.Tracker do
     {:ok, state}
   end
 
-  def handle_call({:snapshot, key}, _from, %{ring: ring} = state) do
+  def handle_call({:snapshot, key}, _from, state) do
     %{ring: ring, members: members} = state
 
     nodes =

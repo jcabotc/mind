@@ -1,46 +1,31 @@
 defmodule Mind.Store do
-  alias __MODULE__.{Registry, Partition}
+  use GenServer
 
-  def child_specs(opts) do
-    store = Keyword.fetch!(opts, :name)
+  def child_specs(opts),
+    do: [child_spec(opts)]
 
-    registry = get_registry(store)
-    partition_sup = get_partition_sup(store)
+  def start_link(opts),
+    do: GenServer.start_link(__MODULE__, :ok, opts)
 
-    [
-      Registry.child_spec(name: registry),
-      Partition.Supervisor.child_spec(name: partition_sup)
-    ]
+  def fetch(store, key),
+    do: GenServer.call(store, {:fetch, key})
+
+  def put(store, key, value),
+    do: GenServer.call(store, {:put, key, value})
+
+  def init(:ok),
+    do: {:ok, %{data: %{}}}
+
+  def handle_call({:fetch, key}, _from, %{data: data} = state) do
+    case Map.fetch(data, key) do
+      {:ok, value} -> {:reply, {:ok, value}, state}
+      :error -> {:reply, :not_found, state}
+    end
   end
 
-  def start_partition(store, partition_id) do
-    name =
-      store
-      |> get_registry()
-      |> Registry.via_tuple(partition_id)
+  def handle_call({:put, key, value}, _from, %{data: data} = state) do
+    new_state = %{state | data: Map.put(data, key, value)}
 
-    store
-    |> get_partition_sup()
-    |> Partition.Supervisor.start_partition(name: name)
+    {:reply, :ok, new_state}
   end
-
-  def fetch(store, partition_id, key) do
-    store
-    |> get_registry()
-    |> Registry.via_tuple(partition_id)
-    |> Partition.fetch(key)
-  end
-
-  def put(store, partition_id, key, value) do
-    store
-    |> get_registry()
-    |> Registry.via_tuple(partition_id)
-    |> Partition.put(key, value)
-  end
-
-  defp get_registry(store),
-    do: :"#{store}.Registry"
-
-  defp get_partition_sup(store),
-    do: :"#{store}.Partition.Supervisor"
 end
