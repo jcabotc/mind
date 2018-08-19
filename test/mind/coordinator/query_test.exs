@@ -1,7 +1,7 @@
-defmodule Mind.RemoteTest do
+defmodule Mind.Coordinator.QueryTest do
   use ExUnit.Case, async: true
 
-  alias Mind.Remote
+  alias Mind.Coordinator.Query
 
   defmodule TestMod do
     def test_fun(arg), do: {:called, arg}
@@ -10,12 +10,12 @@ defmodule Mind.RemoteTest do
   @id __MODULE__
 
   test "run/2" do
-    {:ok, _pid} = start_supervised({Remote.Caller.Supervisor, id: @id})
-    {:ok, _pid} = start_supervised({Remote.Runner.Supervisor, id: @id})
+    {:ok, _pid} = start_supervised({Query.Caller, id: @id})
+    {:ok, _pid} = start_supervised({Query.Runner, id: @id})
 
     self_node = Node.self()
 
-    request = %Remote.Request{
+    query = %Query{
       nodes: [self_node, self_node],
       mfa: {TestMod, :test_fun, ["foo"]},
       quorum: 2,
@@ -23,6 +23,6 @@ defmodule Mind.RemoteTest do
     }
 
     results = [{:called, "foo"}, {:called, "foo"}]
-    assert {:ok, results} == Remote.run(@id, request)
+    assert {:ok, results} == Query.run(@id, query)
   end
 end
