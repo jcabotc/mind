@@ -6,11 +6,17 @@ defmodule Mind.Cluster.Tracker do
   alias __MODULE__.{Members, Ring, Timeouts}
   alias Mind.Cluster.Snapshot
 
-  def start_link(opts),
-    do: GenServer.start_link(__MODULE__, :ok, opts)
+  def child_spec(opts) do
+    id = Keyword.fetch!(opts, :id)
 
-  def snapshot(server, key),
-    do: GenServer.call(server, {:snapshot, key})
+    %{id: __MODULE__, start: {__MODULE__, :start_link, [id]}}
+  end
+
+  def start_link(id),
+    do: GenServer.start_link(__MODULE__, :ok, via(id))
+
+  def snapshot(id, key),
+    do: GenServer.call(via(id), {:snapshot, key})
 
   def init(:ok) do
     :net_kernel.monitor_nodes(true, node_type: :visible)
@@ -72,4 +78,7 @@ defmodule Mind.Cluster.Tracker do
 
     {:noreply, new_state}
   end
+
+  defp via(id),
+    do: Mind.Registry.via(id, __MODULE__)
 end
