@@ -13,6 +13,7 @@ defmodule Mind.MixProject do
 
   def application do
     [
+      mod: {Mind.Application, []},
       extra_applications: [:logger]
     ]
   end
