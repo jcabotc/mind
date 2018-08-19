@@ -15,8 +15,8 @@ defmodule Mind.Cluster.Tracker do
   def start_link(id),
     do: GenServer.start_link(__MODULE__, :ok, via(id))
 
-  def snapshot(id, key),
-    do: GenServer.call(via(id), {:snapshot, key})
+  def snapshot(id, key, replicas),
+    do: GenServer.call(via(id), {:snapshot, key, replicas})
 
   def init(:ok) do
     :net_kernel.monitor_nodes(true, node_type: :visible)
@@ -31,14 +31,14 @@ defmodule Mind.Cluster.Tracker do
     {:ok, state}
   end
 
-  def handle_call({:snapshot, key}, _from, state) do
+  def handle_call({:snapshot, key, replicas}, _from, state) do
     %{ring: ring, members: members} = state
 
     nodes =
       ring
       |> Ring.key_stream(key)
       |> Stream.filter(&(Members.status(members, &1) == :up))
-      |> Enum.to_list()
+      |> Enum.take(replicas)
 
     snapshot = %Snapshot{
       key: key,
@@ -54,6 +54,7 @@ defmodule Mind.Cluster.Tracker do
       |> Map.update!(:ring, &Ring.add(&1, node))
       |> Map.update!(:members, &Members.set(&1, node, :up))
       |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
+      # TODO: Maybe remove sent_after timeout using its ref
 
     {:noreply, new_state}
   end
