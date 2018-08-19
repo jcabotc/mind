@@ -2,13 +2,14 @@ defmodule Mind.StoreTest do
   use ExUnit.Case, async: true
 
   alias Mind.Store
+  @id __MODULE__
 
   test "fetch and put" do
-    {:ok, pid} = start_supervised(Store)
+    {:ok, _pid} = start_supervised({Store, id: @id})
 
-    assert :ok == Store.put(pid, :foo, "foo")
+    assert :ok == Store.put(@id, :foo, "foo")
 
-    assert {:ok, "foo"} == Store.fetch(pid, :foo)
-    assert :not_found == Store.fetch(pid, :bar)
+    assert {:ok, "foo"} == Store.fetch(@id, :foo)
+    assert :not_found == Store.fetch(@id, :bar)
   end
 end

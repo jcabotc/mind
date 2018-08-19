@@ -1,17 +1,20 @@
 defmodule Mind.Store do
   use GenServer
 
-  def child_specs(opts),
-    do: [child_spec(opts)]
+  def child_spec(opts) do
+    id = Keyword.fetch!(opts, :id)
 
-  def start_link(opts),
-    do: GenServer.start_link(__MODULE__, :ok, opts)
+    %{id: __MODULE__, start: {__MODULE__, :start_link, [id]}}
+  end
 
-  def fetch(store, key),
-    do: GenServer.call(store, {:fetch, key})
+  def start_link(id),
+    do: GenServer.start_link(__MODULE__, :ok, name: via(id))
 
-  def put(store, key, value),
-    do: GenServer.call(store, {:put, key, value})
+  def fetch(id, key),
+    do: GenServer.call(via(id), {:fetch, key})
+
+  def put(id, key, value),
+    do: GenServer.call(via(id), {:put, key, value})
 
   def init(:ok),
     do: {:ok, %{data: %{}}}
@@ -28,4 +31,7 @@ defmodule Mind.Store do
 
     {:reply, :ok, new_state}
   end
+
+  def via(id),
+    do: Mind.Registry.via(id, __MODULE__)
 end
