@@ -7,12 +7,11 @@ defmodule Mind.RemoteTest do
     def test_fun(arg), do: {:called, arg}
   end
 
-  @name __MODULE__
+  @id __MODULE__
 
   test "run/2" do
-    [name: @name]
-    |> Remote.child_specs()
-    |> Enum.each(&start_supervised/1)
+    {:ok, _pid} = start_supervised({Remote.Caller.Supervisor, id: @id})
+    {:ok, _pid} = start_supervised({Remote.Runner.Supervisor, id: @id})
 
     self_node = Node.self()
 
@@ -24,6 +23,6 @@ defmodule Mind.RemoteTest do
     }
 
     results = [{:called, "foo"}, {:called, "foo"}]
-    assert {:ok, results} == Remote.run(@name, request)
+    assert {:ok, results} == Remote.run(@id, request)
   end
 end

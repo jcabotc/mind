@@ -1,7 +1,7 @@
 defmodule Mind.Remote.Caller do
   alias Mind.Remote.Runner
 
-  def run(runner_sup, request) do
+  def run(id, request) do
     %{
       nodes: nodes,
       mfa: mfa,
@@ -12,7 +12,7 @@ defmodule Mind.Remote.Caller do
     self_pid = self()
 
     schedule_timeout(timeout_ms, self_pid)
-    remote_run(nodes, runner_sup, mfa, self_pid)
+    remote_run(nodes, id, mfa, self_pid)
 
     wait_for_quorum(quorum)
   end
@@ -20,9 +20,9 @@ defmodule Mind.Remote.Caller do
   defp schedule_timeout(timeout_ms, self_pid),
     do: Process.send_after(self_pid, :timeout, timeout_ms)
 
-  def remote_run(nodes, runner_sup, mfa, self_pid) do
+  def remote_run(nodes, id, mfa, self_pid) do
     Enum.each(nodes, fn node ->
-      Runner.Supervisor.run(runner_sup, node, mfa, self_pid)
+      Runner.Supervisor.run(id, node, mfa, self_pid)
     end)
   end
 

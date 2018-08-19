@@ -11,6 +11,8 @@ defmodule Mind.Supervisor do
       {Config.Store, config: config},
       {Store, id: id},
       {Cluster.Tracker, id: id},
+      {Remote.Caller.Supervisor, id: id},
+      {Remote.Runner.Supervisor, id: id},
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
