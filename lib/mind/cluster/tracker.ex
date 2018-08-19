@@ -13,7 +13,7 @@ defmodule Mind.Cluster.Tracker do
   end
 
   def start_link(id),
-    do: GenServer.start_link(__MODULE__, :ok, via(id))
+    do: GenServer.start_link(__MODULE__, :ok, name: via(id))
 
   def snapshot(id, key, replicas),
     do: GenServer.call(via(id), {:snapshot, key, replicas})

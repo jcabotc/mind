@@ -1,7 +1,7 @@
 defmodule Mind.Supervisor do
   use Supervisor
 
-  alias Mind.{Store, Cluster}
+  alias Mind.{Config, Store, Cluster, Remote}
 
   def start_link(config),
     do: Supervisor.start_link(__MODULE__, config, name: config.id)
@@ -12,7 +12,7 @@ defmodule Mind.Supervisor do
       {Store, id: id},
       {Cluster.Tracker, id: id},
       {Remote.Caller.Supervisor, id: id},
-      {Remote.Runner.Supervisor, id: id},
+      {Remote.Runner.Supervisor, id: id}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
