@@ -4,15 +4,15 @@ defmodule Mind.Cluster.Tracker do
   @node_timeout_ms 1000 * 60 * 60 * 4
 
   alias __MODULE__.{Members, Ring, Timeouts}
-  alias Mind.Cluster.{Snapshot, Events}
+  alias Mind.Cluster.Snapshot
 
-  def start_link(events, opts),
-    do: GenServer.start_link(__MODULE__, events, opts)
+  def start_link(opts),
+    do: GenServer.start_link(__MODULE__, :ok, opts)
 
   def snapshot(server, key),
     do: GenServer.call(server, {:snapshot, key})
 
-  def init(events) do
+  def init(:ok) do
     :net_kernel.monitor_nodes(true, node_type: :visible)
     nodes = [Node.self() | Node.list()]
 
@@ -20,10 +20,8 @@ defmodule Mind.Cluster.Tracker do
       ring: Ring.new(nodes),
       members: Members.new(nodes, :up),
       timeouts: Timeouts.new(),
-      events: events
     }
 
-    Enum.each(nodes, &notify_node_added(state, &1))
     {:ok, state}
   end
 
@@ -51,7 +49,6 @@ defmodule Mind.Cluster.Tracker do
       |> Map.update!(:members, &Members.set(&1, node, :up))
       |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
 
-    notify_node_added(state, node)
     {:noreply, new_state}
   end
 
@@ -73,13 +70,6 @@ defmodule Mind.Cluster.Tracker do
       |> Map.update!(:members, &Members.delete(&1, node))
       |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
 
-    notify_node_removed(state, node)
     {:noreply, new_state}
   end
-
-  defp notify_node_added(%{events: events}, node),
-    do: :ok = Events.notify(events, {:node_added, node})
-
-  defp notify_node_removed(%{events: events}, node),
-    do: :ok = Events.notify(events, {:node_removed, node})
 end

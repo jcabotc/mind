@@ -1,22 +1,10 @@
 defmodule Mind.Cluster do
-  alias __MODULE__.{Tracker, Events}
+  alias __MODULE__.Tracker
 
   def child_specs(opts) do
     cluster = Keyword.fetch!(opts, :name)
 
-    events = get_events(cluster)
-    tracker = get_tracker(cluster)
-
-    [
-      Events.child_spec(name: events),
-      Tracker.child_spec([events, name: tracker])
-    ]
-  end
-
-  def subscribe(cluster, callback) do
-    cluster
-    |> get_events()
-    |> Events.subscribe(callback)
+    [Tracker.child_spec(name: get_tracker(cluster))]
   end
 
   def snapshot(cluster, key) do
@@ -24,9 +12,6 @@ defmodule Mind.Cluster do
     |> get_tracker()
     |> Tracker.snapshot(key)
   end
-
-  defp get_events(cluster),
-    do: :"#{cluster}.Events"
 
   defp get_tracker(cluster),
     do: :"#{cluster}.Tracker"
