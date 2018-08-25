@@ -3,8 +3,7 @@ defmodule Mind.Cluster.Tracker do
 
   @node_timeout_ms 1000 * 60 * 60 * 4
 
-  alias __MODULE__.{Members, Ring, Timeouts}
-  alias Mind.Cluster.Snapshot
+  alias Mind.Cluster.{State, Snapshot}
 
   def child_spec(opts) do
     id = Keyword.fetch!(opts, :id)
@@ -22,22 +21,13 @@ defmodule Mind.Cluster.Tracker do
     :net_kernel.monitor_nodes(true, node_type: :visible)
     nodes = [Node.self() | Node.list()]
 
-    state = %{
-      ring: Ring.new(nodes),
-      members: Members.new(nodes, :up),
-      timeouts: Timeouts.new(),
-    }
-
-    {:ok, state}
+    {:ok, State.new(nodes)}
   end
 
   def handle_call({:snapshot, key, replicas}, _from, state) do
-    %{ring: ring, members: members} = state
-
     nodes =
-      ring
-      |> Ring.key_stream(key)
-      |> Stream.filter(&(Members.status(members, &1) == :up))
+      state
+      |> State.up_nodes_stream(key)
       |> Enum.take(replicas)
 
     snapshot = %Snapshot{
@@ -48,37 +38,18 @@ defmodule Mind.Cluster.Tracker do
     {:reply, snapshot, state}
   end
 
-  def handle_info({:node_up, node}, state) do
-    new_state =
-      state
-      |> Map.update!(:ring, &Ring.add(&1, node))
-      |> Map.update!(:members, &Members.set(&1, node, :up))
-      |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
-      # TODO: Maybe remove sent_after timeout using its ref
-
-    {:noreply, new_state}
-  end
+  # TODO: Maybe remove sent_after timeout using its ref
+  def handle_info({:node_up, node}, state),
+    do: {:noreply, State.node_up(state, node)}
 
   def handle_info({:node_down, node}, state) do
     ref = Process.send_after(self(), {:node_timeout, node}, @node_timeout_ms)
 
-    new_state =
-      state
-      |> Map.update!(:members, &Members.set(&1, node, :down))
-      |> Map.update!(:timeouts, &Timeouts.add(&1, node, ref))
-
-    {:noreply, new_state}
+    {:noreply, State.node_down(state, node, ref)}
   end
 
-  def handle_info({:node_timeout, node}, state) do
-    new_state =
-      state
-      |> Map.update!(:ring, &Ring.remove(&1, node))
-      |> Map.update!(:members, &Members.delete(&1, node))
-      |> Map.update!(:timeouts, &Timeouts.remove_by_node(&1, node))
-
-    {:noreply, new_state}
-  end
+  def handle_info({:node_timeout, node}, state),
+    do: {:noreply, State.node_timeout(state, node)}
 
   defp via(id),
     do: Mind.Registry.via(id, __MODULE__)

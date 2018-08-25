@@ -1,7 +1,7 @@
-defmodule Mind.Cluster.Tracker.MembersTest do
+defmodule Mind.Cluster.State.MembersTest do
   use ExUnit.Case, async: true
 
-  alias Mind.Cluster.Tracker.Members
+  alias Mind.Cluster.State.Members
 
   test "add and remove nodes" do
     members =

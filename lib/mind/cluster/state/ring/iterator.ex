@@ -1,4 +1,4 @@
-defmodule Mind.Cluster.Tracker.Ring.Iterator do
+defmodule Mind.Cluster.State.Ring.Iterator do
   alias __MODULE__
 
   defstruct tree: nil,

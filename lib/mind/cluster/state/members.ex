@@ -1,4 +1,4 @@
-defmodule Mind.Cluster.Tracker.Members do
+defmodule Mind.Cluster.State.Members do
   alias __MODULE__
 
   @type status :: :up | :down | :unknown

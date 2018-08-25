@@ -1,7 +1,7 @@
-defmodule Mind.Cluster.Tracker.TimeoutsTest do
+defmodule Mind.Cluster.State.TimeoutsTest do
   use ExUnit.Case, async: true
 
-  alias Mind.Cluster.Tracker.Timeouts
+  alias Mind.Cluster.State.Timeouts
 
   test "add and pop timeouts" do
     timeouts =
