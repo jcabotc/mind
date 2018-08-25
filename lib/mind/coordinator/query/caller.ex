@@ -21,32 +21,33 @@ defmodule Mind.Coordinator.Query.Caller do
 
   defp do_run(id, query) do
     caller_pid = self()
+    ref = make_ref()
 
-    schedule_timeout(query, caller_pid)
-    run_on_each_node(query, id, caller_pid)
+    schedule_timeout(query, caller_pid, ref)
+    run_on_each_node(query, id, caller_pid, ref)
 
-    wait_for_quorum(query)
+    wait_for_quorum(query, ref)
   end
 
-  defp schedule_timeout(%{timeout_ms: timeout_ms}, caller_pid),
-    do: Process.send_after(caller_pid, :timeout, timeout_ms)
+  defp schedule_timeout(%{timeout_ms: timeout_ms}, caller_pid, ref),
+    do: Process.send_after(caller_pid, {:timeout, ref}, timeout_ms)
 
-  defp run_on_each_node(query, id, caller_pid),
-    do: Enum.each(query.nodes, &Runner.run(id, &1, query, caller_pid))
+  defp run_on_each_node(query, id, caller_pid, ref),
+    do: Enum.each(query.nodes, &Runner.run(id, &1, query, caller_pid, ref))
 
-  defp wait_for_quorum(%{quorum: quorum}),
-    do: gather_results([], quorum)
+  defp wait_for_quorum(%{quorum: quorum}, ref),
+    do: gather_results([], quorum, ref)
 
-  defp gather_results(results, 0),
+  defp gather_results(results, 0, _ref),
     do: {:ok, results}
 
-  defp gather_results(results, remaining) do
+  defp gather_results(results, remaining, ref) do
     receive do
-      :timeout ->
+      {:timeout, ^ref} ->
         {:timeout, results}
 
-      {:done, result} ->
-        gather_results([result | results], remaining - 1)
+      {:done, result, ^ref} ->
+        gather_results([result | results], remaining - 1, ref)
     end
   end
 

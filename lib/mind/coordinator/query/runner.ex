@@ -8,14 +8,14 @@ defmodule Mind.Coordinator.Query.Runner do
   def start_link(id),
     do: Task.Supervisor.start_link(name: name(id))
 
-  def run(id, node, query, caller_pid) do
+  def run(id, node, query, caller_pid, ref) do
     %{mfa: {mod, fun, args}} = query
     sup = {name(id), node}
 
     Task.Supervisor.start_child(sup, fn ->
       result = apply(mod, fun, args)
 
-      send(caller_pid, {:done, result})
+      send(caller_pid, {:done, result, ref})
     end)
   end
 
