@@ -12,7 +12,10 @@ defmodule Mind.Cluster.State.TimeoutsTest do
     assert {:ok, :node_1, timeouts} = Timeouts.pop_by_ref(timeouts, :ref_1)
     assert :not_found = Timeouts.pop_by_ref(timeouts, :ref_1)
 
-    assert timeouts = Timeouts.remove_by_node(timeouts, :node_2)
-    assert :not_found = Timeouts.pop_by_ref(timeouts, :ref_2)
+    assert timeouts = Timeouts.remove_by_node(timeouts, :node_1)
+    assert :not_found = Timeouts.pop_by_ref(timeouts, :ref_1)
+
+    assert {:ok, :ref_2, timeouts} = Timeouts.pop_by_node(timeouts, :node_2)
+    assert :not_found = Timeouts.pop_by_ref(timeouts, :node_2)
   end
 end

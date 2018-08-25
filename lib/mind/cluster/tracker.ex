@@ -38,9 +38,16 @@ defmodule Mind.Cluster.Tracker do
     {:reply, snapshot, state}
   end
 
-  # TODO: Maybe remove sent_after timeout using its ref
-  def handle_info({:node_up, node}, state),
-    do: {:noreply, State.node_up(state, node)}
+  def handle_info({:node_up, node}, state) do
+    case State.node_up(state, node) do
+      {:new_node, new_state} ->
+        {:noreply, new_state}
+
+      {:recovered, timer_ref, new_state} ->
+        Process.cancel_timer(timer_ref)
+        {:noreply, new_state}
+    end
+  end
 
   def handle_info({:node_down, node}, state) do
     ref = Process.send_after(self(), {:node_timeout, node}, @node_timeout_ms)

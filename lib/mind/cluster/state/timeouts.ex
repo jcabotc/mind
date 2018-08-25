@@ -26,14 +26,21 @@ defmodule Mind.Cluster.State.Timeouts do
     end
   end
 
-  def remove_by_node(%Timeouts{refs: refs, nodes: nodes} = timeouts, node) do
+  def pop_by_node(%Timeouts{refs: refs, nodes: nodes} = timeouts, node) do
     case Map.pop(refs, node) do
       {nil, ^refs} ->
-        timeouts
+        :not_found
 
       {ref, new_refs} ->
         new_nodes = Map.delete(nodes, ref)
-        %{timeouts | refs: new_refs, nodes: new_nodes}
+        {:ok, ref, %{timeouts | refs: new_refs, nodes: new_nodes}}
+    end
+  end
+
+  def remove_by_node(timeouts, node) do
+    case pop_by_node(timeouts, node) do
+      :not_found -> timeouts
+      {:ok, _ref, new_timeouts} -> new_timeouts
     end
   end
 end
