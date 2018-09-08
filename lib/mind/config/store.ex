@@ -10,6 +10,9 @@ defmodule Mind.Config.Store do
   def start_link(%{id: id} = config),
     do: GenServer.start_link(__MODULE__, config, name: via(id))
 
+  def node_timeout_ms(id),
+    do: GenServer.call(via(id), {:field, :node_timeout_ms})
+
   def key_replicas(id),
     do: GenServer.call(via(id), {:field, :key_replicas})
 
